@@ -182,14 +182,30 @@ def generate_ai_briefing(
 마지막에는 오늘 수집된 나머지 주요 참고 링크 5~8개를 한 줄 목록으로 덧붙여 주세요.
 """
 
-    interaction = client.interactions.create(
-        model="gemini-4-hydrogen",
-        input=prompt,
-        system_instruction=system_instruction,
-        store=False,
-    )
-    if interaction.output_text:
-        return interaction.output_text.strip() + "\n"
+    model_candidates = [
+        "gemini-4-hydrogen",
+        "gemini-3.5-flash-lite",
+        "gemini-3.1-flash-lite",
+    ]
+    last_exc: Exception | None = None
+    for model_name in model_candidates:
+        try:
+            print(f"[INFO] Calling Gemini model: {model_name} ...")
+            interaction = client.interactions.create(
+                model=model_name,
+                input=prompt,
+                system_instruction=system_instruction,
+                store=False,
+            )
+            if interaction.output_text:
+                print(f"[INFO] AI Topic Briefing succeeded with {model_name}.")
+                return interaction.output_text.strip() + "\n"
+        except Exception as exc:
+            last_exc = exc
+            print(f"[WARN] Model {model_name} failed ({exc}); trying fallback model...")
+            continue
+    if last_exc:
+        raise last_exc
     return build_fallback_markdown(today_str, collected)
 
 
