@@ -1,0 +1,70 @@
+{
+  "max_items_per_source": 4,
+  "sources": [
+    {
+      "name": "Google AI Blog",
+      "category": "AI & 트렌드",
+      "url": "https://blog.google/technology/ai/rss/"
+    },
+    {
+      "name": "OpenAI News",
+      "category": "AI & 트렌드",
+      "url": "https://openai.com/news/rss.xml"
+    },
+    {
+      "name": "Astro Blog",
+      "category": "웹/앱 개발",
+      "url": "https://astro.build/rss.xml"
+    },
+    {
+      "name": "GitHub Blog",
+      "category": "웹/앱 개발",
+      "url": "https://github.blog/feed/"
+    },
+    {
+      "name": "Cloudflare Blog",
+      "category": "클라우드 & 인프라",
+      "url": "https://blog.cloudflare.com/rss/"
+    },
+    {
+      "name": "NVIDIA Newsroom",
+      "category": "테크 리뷰",
+      "url": "https://nvidianews.nvidia.com/releases.xml"
+    },
+    {
+      "name": "Hacker News Top",
+      "category": "테크 리뷰",
+      "url": "https://hnrss.org/frontpage?points=150"
+    },
+    {
+      "name": "MIT Technology Review",
+      "category": "테크 리뷰",
+      "url": "https://www.technologyreview.com/feed/"
+    },
+    {
+      "name": "NASA Breaking News (우주항공)",
+      "category": "테크 리뷰",
+      "url": "https://www.nasa.gov/rss/dyn/breaking_news.rss"
+    },
+    {
+      "name": "SpaceNews (우주항공)",
+      "category": "테크 리뷰",
+      "url": "https://spacenews.com/feed/"
+    },
+    {
+      "name": "Electrek (자동차·EV·자율주행)",
+      "category": "테크 리뷰",
+      "url": "https://electrek.co/feed/"
+    },
+    {
+      "name": "gCaptain (해양·자율운항·조선)",
+      "category": "테크 리뷰",
+      "url": "https://gcaptain.com/feed/"
+    },
+    {
+      "name": "MarineLink (해양공학·친환경 선박)",
+      "category": "테크 리뷰",
+      "url": "https://www.marinelink.com/news/rss"
+    }
+  ]
+}

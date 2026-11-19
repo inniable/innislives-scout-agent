@@ -1,0 +1,56 @@
+name: Daily Blog Topic Scout Agent
+
+on:
+  schedule:
+    # 매일 오전 08:00 KST (23:00 UTC 전날) 자동 실행
+    - cron: '0 23 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  issues: write
+
+jobs:
+  scout-topics:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python 3.12
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install Dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run Topic Scout Agent
+        env:
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: python scout_agent.py
+
+      - name: Commit Daily Topic Report to ideas/
+        run: |
+          TODAY=$(TZ='Asia/Seoul' date +'%Y-%m-%d')
+          git config user.name "innislives-scout-agent"
+          git config user.email "scout@innislives.tech"
+          git add ideas/
+          git diff --cached --quiet || (git commit -m "chore(scout): add daily topic briefing ($TODAY)" && git push origin main)
+
+      - name: Publish Briefing as GitHub Issue
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+            const today = now.toISOString().slice(0, 10);
+            const filePath = `ideas/${today}-topics.md`;
+            if (!fs.existsSync(filePath)) return;
+            const body = fs.readFileSync(filePath, 'utf8');
+            await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `[글감 브리핑] ${today} 오늘의 innislives 추천 블로그 주제 TOP 5`,
+              body: body.slice(0, 60000),
+            });
