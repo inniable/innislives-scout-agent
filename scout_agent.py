@@ -137,7 +137,7 @@ def generate_ai_briefing(
 ) -> str:
     from google import genai
 
-    client = genai.Client(api_key=api_key)
+    client = genai.Client(api_key=api_key, http_options={"timeout": 30000})
 
     feed_lines = []
     for idx, item in enumerate(collected, 1):
@@ -183,8 +183,8 @@ def generate_ai_briefing(
 """
 
     model_candidates = [
-        "gemini-4-hydrogen",
         "gemini-3.5-flash-lite",
+        "gemini-4-hydrogen",
         "gemini-3.1-flash-lite",
     ]
     last_exc: Exception | None = None
