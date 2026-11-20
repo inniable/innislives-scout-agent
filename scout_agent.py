@@ -134,6 +134,26 @@ def load_existing_blog_titles() -> list[str]:
     return titles
 
 
+def load_previously_recommended_urls(today_str: str) -> set[str]:
+    """Extracts source URLs already recommended in previous days' ideas/*.md files."""
+    seen_urls: set[str] = set()
+    if not IDEAS_DIR.exists():
+        return seen_urls
+    url_re = re.compile(r"https?://[^\s\)\]>\"']+")
+    for md_file in sorted(IDEAS_DIR.glob("*-topics.md")):
+        if md_file.name.startswith(today_str):
+            continue
+        try:
+            text = md_file.read_text(encoding="utf-8", errors="ignore")
+            # Only exclude URLs that appeared in the TOP 5 recommendation section (before '추가 참고 링크')
+            top_section = text.split("추가 참고 링크")[0]
+            for u in url_re.findall(top_section):
+                seen_urls.add(u.rstrip(".,;:/"))
+        except Exception:
+            continue
+    return seen_urls
+
+
 def build_fallback_markdown(today_str: str, collected: list[dict[str, str]]) -> str:
     lines = [
         f"# 🗞️ {today_str} 블로그 글감 자동 수집 리포트 (원문 요약)",
@@ -243,6 +263,15 @@ def main() -> None:
         items = fetch_rss_items(src, max_items=max_per_source)
         print(f"[INFO] {src['name']}: fetched {len(items)} items")
         collected.extend(items)
+
+    prev_urls = load_previously_recommended_urls(today_str)
+    if prev_urls:
+        before_cnt = len(collected)
+        collected = [
+            item for item in collected
+            if item["link"].rstrip(".,;:/") not in prev_urls
+        ]
+        print(f"[INFO] Hard-filtered {before_cnt - len(collected)} previously recommended URLs ({len(collected)} fresh items remain).")
 
     existing_titles = load_existing_blog_titles()
     api_key = (os.environ.get("GEMINI_API_KEY") or os.environ.get("GOOGLE_API_KEY") or "").strip()
