@@ -2,8 +2,9 @@ name: Daily Blog Topic Scout Agent
 
 on:
   schedule:
-    # 매일 오전 07:17 KST (22:17 UTC 전날 — 정각 혼잡 회피용 비혼잡 스케줄)
-    - cron: '17 22 * * *'
+    # 이중 백업 크론 (1차: 06:17 KST / 2차 백업: 07:47 KST — 당일 이미 발행된 경우 자동 스킵)
+    - cron: '17 21 * * *'
+    - cron: '47 22 * * *'
   workflow_dispatch:
 
 permissions:
@@ -17,20 +18,35 @@ jobs:
       - name: Checkout Repository
         uses: actions/checkout@v4
 
+      - name: Check if Today's Briefing Already Exists (Prevent Duplicate on Backup Cron)
+        id: check_dup
+        run: |
+          TODAY=$(TZ='Asia/Seoul' date +'%Y-%m-%d')
+          if [ "${{ github.event_name }}" = "schedule" ] && [ -f "ideas/${TODAY}-topics.md" ]; then
+            echo "Today's briefing (ideas/${TODAY}-topics.md) already exists. Skipping backup run."
+            echo "skip=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "skip=false" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Set up Python 3.12
+        if: steps.check_dup.outputs.skip != 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
 
       - name: Install Dependencies
+        if: steps.check_dup.outputs.skip != 'true'
         run: pip install -r requirements.txt
 
       - name: Run Topic Scout Agent
+        if: steps.check_dup.outputs.skip != 'true'
         env:
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
         run: python scout_agent.py
 
       - name: Commit Daily Topic Report to ideas/
+        if: steps.check_dup.outputs.skip != 'true'
         run: |
           TODAY=$(TZ='Asia/Seoul' date +'%Y-%m-%d')
           git config user.name "innislives-scout-agent"
@@ -39,6 +55,7 @@ jobs:
           git diff --cached --quiet || (git commit -m "chore(scout): add daily topic briefing ($TODAY)" && git push origin main)
 
       - name: Publish Briefing as GitHub Issue
+        if: steps.check_dup.outputs.skip != 'true'
         uses: actions/github-script@v7
         with:
           script: |

@@ -28,6 +28,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 IDEAS_DIR = REPO_ROOT / "ideas"
 SOURCES_PATH = REPO_ROOT / "sources.json"
 DEFAULT_BLOG_DIR = Path(os.environ.get("BLOG_CONTENT_DIR", r"C:\project\innislives-blog\src\content\blog"))
+LIVE_BLOG_RSS_URL = os.environ.get("LIVE_BLOG_RSS_URL", "https://innislives.tech/rss.xml")
 
 KST = timezone(timedelta(hours=9))
 
@@ -98,18 +99,38 @@ def fetch_rss_items(source: dict[str, str], max_items: int = 4) -> list[dict[str
 
 def load_existing_blog_titles() -> list[str]:
     titles: list[str] = []
-    if not DEFAULT_BLOG_DIR.exists():
-        return titles
-    for md_file in sorted(DEFAULT_BLOG_DIR.glob("*.md")):
-        try:
-            text = md_file.read_text(encoding="utf-8", errors="ignore")
-            m = re.search(r'^title:\s*["\']?(.*?)["\']?\s*$', text, re.MULTILINE)
-            if m:
-                titles.append(m.group(1).strip())
-            else:
-                titles.append(md_file.stem)
-        except Exception:
-            continue
+    seen: set[str] = set()
+
+    # 1. Fetch live published posts from innislives.tech/rss.xml (works in GitHub Actions cloud)
+    try:
+        req = urllib.request.Request(
+            LIVE_BLOG_RSS_URL,
+            headers={"User-Agent": "Mozilla/5.0 (compatible; innislives-scout/1.0)"},
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            root = ET.fromstring(resp.read())
+        for item in root.findall(".//item"):
+            t = (item.findtext("title") or "").strip()
+            if t and t not in seen:
+                seen.add(t)
+                titles.append(t)
+        print(f"[INFO] Loaded {len(titles)} published titles from {LIVE_BLOG_RSS_URL}")
+    except Exception as exc:
+        print(f"[WARN] Could not fetch live RSS titles ({exc}); checking local blog dir.")
+
+    # 2. Also include local markdown files if available
+    if DEFAULT_BLOG_DIR.exists():
+        for md_file in sorted(DEFAULT_BLOG_DIR.glob("*.md")):
+            try:
+                text = md_file.read_text(encoding="utf-8", errors="ignore")
+                m = re.search(r'^title:\s*["\']?(.*?)["\']?\s*$', text, re.MULTILINE)
+                t = m.group(1).strip() if m else md_file.stem
+                if t and t not in seen:
+                    seen.add(t)
+                    titles.append(t)
+            except Exception:
+                continue
+
     return titles
 
 
