@@ -145,8 +145,8 @@ def load_previously_recommended_urls(today_str: str) -> set[str]:
             continue
         try:
             text = md_file.read_text(encoding="utf-8", errors="ignore")
-            # Only exclude URLs that appeared in the TOP 5 recommendation section (before '추가 참고 링크')
-            top_section = text.split("추가 참고 링크")[0]
+            # Only exclude URLs that appeared in the TOP 5 recommendation section (before extra links section)
+            top_section = re.split(r"(?:추가|주요)\s*참고", text, maxsplit=1)[0]
             for u in url_re.findall(top_section):
                 seen_urls.add(u.rstrip(".,;:/"))
         except Exception:
@@ -215,12 +215,15 @@ def generate_ai_briefing(
 각 추천 글감(1번~5번)마다 반드시 아래 항목을 포함하세요:
 - **추천 카테고리:** (`AI & 트렌드`, `웹/앱 개발`, `클라우드 & 인프라`, `테크 리뷰` 중 택1)
 - **추천 SEO 제목 (클릭을 부르는 한글 제목):**
-- **핵심 타깃 키워드 4~5개:**
+- **핵심 타깃 키워드 4~5개:** (주의: 키워드 안에 슬래시 `/` 문자 사용 금지 — Astro 태그 URL 오류 방지)
 - **왜 지금 써야 하는가 (핵심 팩트 3줄 요약):**
 - **추천 H2 목차 구성 (4~5단계):**
 - **1차 공식 출처 링크:** (반드시 위 수집 목록에 있는 실제 URL 그대로 표기)
 
-마지막에는 오늘 수집된 나머지 주요 참고 링크 5~8개를 한 줄 목록으로 덧붙여 주세요.
+중복 방지 필수 규칙:
+- 위 [이미 블로그에 발행된 기존 글 목록]과 URL이 다르더라도, 최근 며칠 내 이미 다룬 **동일 사건·동일 이슈의 단순 후속 기사**는 TOP 5에서 제외하고 완전히 새로운 주제를 선정하세요.
+
+마지막에는 오늘 수집된 나머지 주요 참고 링크 5~8개를 `### 🔗 오늘의 추가 참고 링크` 섹션 아래에 한 줄 목록으로 덧붙여 주세요.
 """
 
     model_candidates = [

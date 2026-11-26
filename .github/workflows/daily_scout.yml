@@ -2,10 +2,17 @@ name: Daily Blog Topic Scout Agent
 
 on:
   schedule:
-    # 이중 백업 크론 (1차: 06:17 KST / 2차 백업: 07:47 KST — 당일 이미 발행된 경우 자동 스킵)
-    - cron: '17 21 * * *'
-    - cron: '47 22 * * *'
+    # 3중 조기 백업 크론 (GitHub Actions 무료 플랜의 4~8시간 큐 지연을 흡수하기 위해 KST 자정 직후부터 배치)
+    # 1차: 00:23 KST (15:23 UTC) / 2차: 03:37 KST (18:37 UTC) / 3차: 06:41 KST (21:41 UTC)
+    # 당일 파일(ideas/YYYY-MM-DD-topics.md)이 이미 생성된 경우 자동 스킵되어 중복 실행 0%
+    - cron: '23 15 * * *'
+    - cron: '37 18 * * *'
+    - cron: '41 21 * * *'
   workflow_dispatch:
+
+concurrency:
+  group: daily-blog-topic-scout
+  cancel-in-progress: false
 
 permissions:
   contents: write
@@ -52,7 +59,7 @@ jobs:
           git config user.name "innislives-scout-agent"
           git config user.email "scout@innislives.tech"
           git add ideas/
-          git diff --cached --quiet || (git commit -m "chore(scout): add daily topic briefing ($TODAY)" && git push origin main)
+          git diff --cached --quiet || (git commit -m "chore(scout): add daily topic briefing ($TODAY)" && git pull --rebase origin main && git push origin main)
 
       - name: Publish Briefing as GitHub Issue
         if: steps.check_dup.outputs.skip != 'true'
